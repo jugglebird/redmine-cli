@@ -1,0 +1,57 @@
+= redmine-cli
+
+Quick command-line client for Redmine projects.
+
+== Summary
+
+    $ redmine-cli --help
+    Commands
+
+    list                        # List issues
+      -s/--status=[STRING]      # Filter by status (open = 'o', closed = 'c', all = '*')
+    open [issue(NUMERIC)]       # Open issue in browser
+    show [issue(NUMERIC)]       # Display issue details
+
+    Global options
+
+    -?/--help                   # Print help message
+
+=== Listing issues
+
+    $ redmine-cli list
+    +---------+-----+--------------------------------------------------------------------+--------+--------------+-------------+
+    | Tracker | #   | Subject                                                            | Status | Author       | Assigned to |
+    +---------+-----+--------------------------------------------------------------------+--------+--------------+-------------+
+    |     Bug | 1   | Sample Issue                                                       | New    | Víctor M.    | -           |
+    +---------+-----+--------------------------------------------------------------------+--------+--------------+-------------+
+
+=== Reading issues
+
+    $ redmine-cli show 1
+                  #: 1
+            Tracker: Bug
+            Subject: Sample Issue
+        Description: Wow, awesome console-fu!
+             Status: Closed
+             % Done: 0
+
+== Planned Features
+
+* API Key based authentication
+* Per-project configuration
+* Assisted GIT feature branching by issue id
+* Automated time tracking based on fork and integration dates 
+
+== Note on Patches/Pull Requests
+ 
+* Fork the project.
+* Make your feature addition or bug fix.
+* Add tests for it. This is important so I don't break it in a
+  future version unintentionally.
+* Commit, do not mess with rakefile, version, or history.
+  (if you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
+* Send me a pull request. Bonus points for topic branches.
+
+== Copyright
+
+Copyright (c) 2010 Víctor Martínez. See LICENSE for details.

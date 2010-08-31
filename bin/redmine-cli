@@ -1,0 +1,104 @@
+#!/usr/bin/env ruby -lrubygems
+
+require 'optitron'
+require 'active_resource'
+require 'terminal-table/import'
+require 'rainbow'
+
+class Resource < ActiveResource::Base
+  cattr_reader :hostname
+  @@hostname = "rm.nicepeopleatwork.com"
+  self.site = "http://#{@@hostname}"
+
+  @@defaults = {}
+  class << self
+    def query_string_with_defaults(options)
+      query_string_without_defaults(@@defaults.merge(options))
+    end
+
+    alias_method_chain :query_string, :defaults
+
+    def defaults(hash)
+      @@defaults = hash
+    end
+  end
+end
+
+class Issue < Resource
+  self.prefix = "/projects/:project_id/"
+end
+
+class Runner < Optitron::CLI
+  def initialize
+    config_file = "redmine.yaml"
+    if File.exist?(config_file)
+      @config = YAML.load(File.open(config_file))
+      Resource.site = @config["site"]
+      Resource.defaults :key => @config["key"]
+    else
+      raise Exception.new("Configuration file does not exist.")
+    end
+  end
+
+  desc "List issues"
+
+  opt "status", "Filter by status (open = 'o', closed = 'c', all = '*')", :type => :string, :default => "o"
+
+  def list
+    issue_params = {:project_id => @config["project"]}
+    issue_params["status_id"] = params["status"] if params["status"]
+
+    issues = Issue.find(:all, :params => issue_params)
+    if issues.any?
+      issue_table = table do
+        self.headings = 'Tracker', '#', 'Subject', 'Status', 'Author', "Assigned to"
+        issues.each do |issue|
+          issue.subject.gsub!(/[\r\n\t]+/, " ")
+          issue.subject.strip!
+          add_row [
+                          issue.tracker.name,
+                          issue.id,
+                          issue.subject,
+                          issue.status.name,
+                          issue.author.name,
+                          issue.respond_to?(:assigned_to) ? issue.assigned_to.name : "-"
+                  ]
+          align_column 0, :right
+        end
+      end
+      puts issue_table
+    else
+      puts "No issues matched."
+    end
+  end
+
+  desc "Open issue in browser"
+
+  def open(issue_int)
+    url = [Issue.site, "/", Issue.collection_name, "/", issue_int].join
+    system "open", url
+  end
+
+  desc "Display issue details"
+
+  def show(issue_int)
+    issue = Issue.find(issue_int, :params => {:project_id => @config["project"]})
+    print_attribute('#', issue.id)
+    print_attribute('Tracker', issue.tracker.name) unless issue.tracker.name.blank?
+    print_attribute('Subject', issue.subject) unless issue.subject.blank?
+    print_attribute('Description', issue.description) unless issue.description.blank?
+    print_attribute('Status', issue.status.name) unless issue.status.name.blank?
+    print_attribute('Priority', issue.priority.name) if issue.responds_to?(:priority)
+    print_attribute('% Done', issue.done_ratio) unless issue.done_ratio.blank?
+    print_attribute('Author', issue.author.name) if issue.responds_to?(:author)
+    print_attribute('Assigned to', issue.assigned_to.name) if issue.responds_to?(:assigned_to)
+  end
+
+  protected
+
+  def print_attribute(label, value)
+    puts [label.rjust(15).foreground(:yellow), value].join(": ")
+  end
+end
+
+Runner.dispatch
